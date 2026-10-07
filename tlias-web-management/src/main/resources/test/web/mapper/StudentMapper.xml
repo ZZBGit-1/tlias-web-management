@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="test.web.mapper.StudentMapper">
+    <insert id="addStudent">
+        insert into student (name, no, gender, clazz_id, id_card, is_college,address, phone, degree, graduation_date, create_time,update_time)
+        values (#{name}, #{no}, #{gender}, #{clazzId}, #{idCard}, #{isCollege}, #{address}, #{phone}, #{degree}, #{graduationDate}, #{createTime}, #{updateTime})
+    </insert>
+    <update id="updateStudent">
+        update student
+        <set>
+            <if test="name != null and name != ''">
+                name = #{name},
+            </if>
+            <if test="no != null and no != ''">
+                no = #{no},
+            </if>
+            <if test="gender != null and gender != ''">
+                gender = #{gender},
+            </if>
+            <if test="clazzId != null">
+                clazz_id = #{clazzId},
+            </if>
+            <if test="idCard != null and idCard != ''">
+                id_card = #{idCard},
+            </if>
+            <if test="isCollege != null and isCollege != ''">
+                is_college = #{isCollege},
+            </if>
+            <if test="address != null and address != ''">
+                address = #{address},
+            </if>
+            <if test="phone != null and phone != ''">
+                phone = #{phone},
+            </if>
+            <if test="degree != null and degree != ''">
+                degree = #{degree},
+            </if>
+            <if test="graduationDate != null">
+                graduation_date = #{graduationDate},
+            </if>
+            update_time = #{updateTime}
+        </set>
+        where id = #{id}
+    </update>
+    <update id="updateViolation">
+        update student
+        set violation_score = violation_score + #{score},update_time = now(),violation_count = violation_count + 1
+        where id = #{id}
+    </update>
+    <delete id="deleteStudents">
+        delete
+        from student where id in
+            <foreach collection="ids" item="id" separator="," open="(" close=")">
+                #{id}
+            </foreach>
+    </delete>
+
+    <select id="getStudentByPage" resultType="test.web.pojo.Student">
+        select s.id,s.name,s.no,s.gender,s.clazz_id,c.name as clazz_name,s.phone,s.degree,s.violation_count,s.violation_score,s.update_time
+        from student s left join clazz c on s.clazz_id = c.id
+        <where>
+        <if test="name != null and name != ''">
+            s.name like concat('%',#{name},'%')
+        </if>
+        <if test="clazzId != null">
+            AND s.clazz_id = #{clazzId}
+        </if>
+        <if test="degree != null">
+            AND s.degree = #{degree}
+        </if>
+    </where>
+        order by s.update_time desc
+    </select>
+    <select id="getStudentById" resultType="test.web.pojo.Student">
+        select s.id,s.name,s.no,s.gender,s.clazz_id,c.name as clazz_name,s.phone,s.degree,s.address,s.id_card,s.is_college,s.graduation_date,s.violation_count,s.violation_score,s.update_time,s.create_time
+        from student s left join clazz c on s.clazz_id = c.id
+        where s.id = #{id}
+    </select>
+    <select id="getDegreeReport" resultType="java.util.Map">
+        select degree as name, count(*) as value
+        from student
+        group by degree
+    </select>
+    <select id="getStudentCountReport" resultType="java.util.Map">
+        -- 第一部分：clazz表里所有班级（没人的value=0）
+        select c.name as name, count(s.id) as value
+        from clazz c left join student s on c.id = s.clazz_id
+        group by c.name
+
+        union all
+
+        -- 第二部分：student表里clazz_id在clazz表中找不到的，归为"其他"
+        select '其他' as name, count(*) as value
+        from student s left join clazz c on s.clazz_id = c.id
+        where c.id is null
+
+    </select>
+
+</mapper>
